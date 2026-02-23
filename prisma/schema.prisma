@@ -1,0 +1,115 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  TENANT
+  ADMIN
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum AgreementStatus {
+  PENDING
+  ACTIVE
+  TERMINATED
+  EXPIRED
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         Role
+  walletAddress String?  @unique
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  properties   Property[]
+  offers       Offer[]
+  agreementsAsOwner  Agreement[] @relation("OwnerAgreements")
+  agreementsAsTenant Agreement[] @relation("TenantAgreements")
+}
+
+model Property {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  location    String
+  price       Float    // monthly rent in INR
+  bedrooms    Int
+  bathrooms   Int
+  areaSqFt    Float?
+  isAvailable Boolean  @default(true)
+
+  // IPFS CIDs
+  imageCIDs   String[]
+  videoCIDs   String[]
+
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id])
+
+  offers      Offer[]
+  agreements  Agreement[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Offer {
+  id         String      @id @default(cuid())
+  price      Float       // proposed monthly rent in INR
+  message    String?
+  status     OfferStatus @default(PENDING)
+
+  propertyId String
+  property   Property    @relation(fields: [propertyId], references: [id])
+
+  tenantId   String
+  tenant     User        @relation(fields: [tenantId], references: [id])
+
+  agreement  Agreement?
+
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Agreement {
+  id              String          @id @default(cuid())
+  monthlyRent     Float
+  startDate       DateTime
+  endDate         DateTime
+  ipfsCID         String          // IPFS CID of agreement PDF
+  onChainId       Int?            // Smart contract agreement ID
+  txHash          String?         // blockchain transaction hash
+  status          AgreementStatus @default(ACTIVE)
+
+  propertyId      String
+  property        Property        @relation(fields: [propertyId], references: [id])
+
+  ownerId         String
+  owner           User            @relation("OwnerAgreements", fields: [ownerId], references: [id])
+
+  tenantId        String
+  tenant          User            @relation("TenantAgreements", fields: [tenantId], references: [id])
+
+  offerId         String?         @unique
+  offer           Offer?          @relation(fields: [offerId], references: [id])
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}

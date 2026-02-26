@@ -19,6 +19,29 @@ function parseYmd(ymd: string): Date {
   return new Date(y, (m || 1) - 1, d || 1);
 }
 
+function isValidYmd(ymd: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return false;
+  const [y, m, d] = ymd.split("-").map(Number);
+  const parsed = new Date(y, m - 1, d);
+  return (
+    parsed.getFullYear() === y &&
+    parsed.getMonth() === m - 1 &&
+    parsed.getDate() === d
+  );
+}
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function getTodayYmd(): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return formatYmd(today);
+}
+
 async function parseJsonSafely(res: Response): Promise<any | null> {
   const contentType = res.headers.get("content-type") || "";
   const rawBody = await res.text();
@@ -137,6 +160,7 @@ export default function DashboardPage() {
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
   const [agreementStartDate, setAgreementStartDate] = useState("");
   const [agreementEndDate, setAgreementEndDate] = useState("");
+  const [agreementDateError, setAgreementDateError] = useState("");
   const [creatingAgreement, setCreatingAgreement] = useState(false);
 
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : "";
@@ -193,11 +217,29 @@ export default function DashboardPage() {
   async function finalizeAgreement() {
     if (!selectedOfferId || !agreementStartDate || !agreementEndDate) return;
 
-    if (agreementEndDate < agreementStartDate) {
-      setActionMsg("ERROR: End date must be on or after start date.");
+    const todayYmd = getTodayYmd();
+    if (!isValidYmd(agreementStartDate) || !isValidYmd(agreementEndDate)) {
+      const msg = "Agreement dates are invalid. Please select valid calendar dates.";
+      setAgreementDateError(msg);
+      setActionMsg(`ERROR: ${msg}`);
       return;
     }
 
+    if (agreementStartDate < todayYmd) {
+      const msg = "Start date must be today or a future date.";
+      setAgreementDateError(msg);
+      setActionMsg(`ERROR: ${msg}`);
+      return;
+    }
+
+    if (agreementEndDate <= agreementStartDate) {
+      const msg = "End date must be after the start date.";
+      setAgreementDateError(msg);
+      setActionMsg(`ERROR: ${msg}`);
+      return;
+    }
+
+    setAgreementDateError("");
     setCreatingAgreement(true);
 
     try {
@@ -235,6 +277,51 @@ export default function DashboardPage() {
   }
 
   if (loading) return <p className="text-gray-500 p-8">Loading dashboard...</p>;
+  const todayYmd = getTodayYmd();
+  const endMinDate = agreementStartDate
+    ? formatYmd(addDays(parseYmd(agreementStartDate), 1))
+    : formatYmd(addDays(parseYmd(todayYmd), 1));
+
+  const handleStartDateChange = (value: string) => {
+    if (!isValidYmd(value)) {
+      setAgreementDateError("Please choose a valid start date.");
+      return;
+    }
+
+    if (value < todayYmd) {
+      setAgreementDateError("Start date cannot be in the past.");
+      return;
+    }
+
+    setAgreementDateError("");
+    setAgreementStartDate(value);
+
+    // Keep end date valid when start date moves forward.
+    if (agreementEndDate && agreementEndDate <= value) {
+      setAgreementEndDate("");
+      setAgreementDateError("End date was reset. Please choose a date after the new start date.");
+    }
+  };
+
+  const handleEndDateChange = (value: string) => {
+    if (!isValidYmd(value)) {
+      setAgreementDateError("Please choose a valid end date.");
+      return;
+    }
+
+    if (!agreementStartDate) {
+      setAgreementDateError("Select a start date first.");
+      return;
+    }
+
+    if (value <= agreementStartDate) {
+      setAgreementDateError("End date must be after the start date.");
+      return;
+    }
+
+    setAgreementDateError("");
+    setAgreementEndDate(value);
+  };
 
   const statusBadge = (s: string) => {
     const colors: Record<string, string> = {
@@ -279,6 +366,7 @@ export default function DashboardPage() {
                   setSelectedOfferId(null);
                   setAgreementStartDate("");
                   setAgreementEndDate("");
+                  setAgreementDateError("");
                 }}
                 className="text-sm text-gray-500 hover:text-gray-700"
               >
@@ -290,19 +378,21 @@ export default function DashboardPage() {
               <CalendarDatePicker
                 label="Start Date"
                 value={agreementStartDate}
-                onChange={setAgreementStartDate}
+                onChange={handleStartDateChange}
+                minDate={todayYmd}
               />
               <CalendarDatePicker
                 label="End Date"
                 value={agreementEndDate}
-                onChange={setAgreementEndDate}
-                minDate={agreementStartDate || undefined}
+                onChange={handleEndDateChange}
+                minDate={endMinDate}
               />
             </div>
 
             <p className="text-xs text-gray-500 mt-3">
               Selected: {agreementStartDate || "YYYY-MM-DD"} to {agreementEndDate || "YYYY-MM-DD"}
             </p>
+            {agreementDateError && <p className="text-xs text-red-600 mt-1">{agreementDateError}</p>}
 
             <div className="flex items-center gap-3 mt-4">
               <button
@@ -320,6 +410,7 @@ export default function DashboardPage() {
                   setSelectedOfferId(null);
                   setAgreementStartDate("");
                   setAgreementEndDate("");
+                  setAgreementDateError("");
                 }}
                 className="px-4 py-2 rounded-lg text-sm border border-gray-200 text-gray-600 hover:bg-gray-50"
               >
@@ -394,6 +485,7 @@ export default function DashboardPage() {
                         setSelectedOfferId(o.id);
                         setAgreementStartDate("");
                         setAgreementEndDate("");
+                        setAgreementDateError("");
                       }}
                       className="text-xs bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700"
                     >

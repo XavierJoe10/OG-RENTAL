@@ -30,14 +30,12 @@ export function getContract(withSigner = false) {
 }
 
 export interface CreateAgreementParams {
-  tenantWallet:  string;
-  propertyId:    string;
-  monthlyRentInr?: number;
-  // Backward-compatibility for older callers.
-  monthlyRentEth?: number;
-  startDate:     Date;
-  endDate:       Date;
-  ipfsCID:       string;
+  tenantWallet:   string;
+  propertyId:     string;
+  monthlyRentINR: number;  // Rent in Indian Rupees (e.g. 20000 for ₹20,000)
+  startDate:      Date;
+  endDate:        Date;
+  ipfsCID:        string;
 }
 
 /**
@@ -49,16 +47,17 @@ export async function createOnChainAgreement(
 ): Promise<{ onChainId: number; txHash: string }> {
   const contract = getContract(true);
 
-  const rentValue = params.monthlyRentInr ?? params.monthlyRentEth;
-  if (rentValue == null) throw new Error("monthlyRentInr is required");
-  const rentWei   = ethers.parseEther(rentValue.toString());
-  const startUnix = Math.floor(params.startDate.getTime() / 1000);
-  const endUnix   = Math.floor(params.endDate.getTime() / 1000);
+  // Store rent as paise (₹ × 100) as a plain uint256.
+  // We are NOT transferring ETH — just recording the INR value on-chain.
+  // e.g. ₹20,000 → 2,000,000 paise stored as uint256
+  const rentInPaise = BigInt(Math.round(params.monthlyRentINR * 100));
+  const startUnix   = Math.floor(params.startDate.getTime() / 1000);
+  const endUnix     = Math.floor(params.endDate.getTime() / 1000);
 
   const tx = await contract.createAgreement(
     params.tenantWallet,
     params.propertyId,
-    rentWei,
+    rentInPaise,   // uint256 paise — safe, no ETH parseEther overflow
     startUnix,
     endUnix,
     params.ipfsCID
@@ -67,8 +66,8 @@ export async function createOnChainAgreement(
   const receipt = await tx.wait();
 
   // Parse the AgreementCreated event to extract the on-chain ID
-  const iface    = new ethers.Interface(ABI);
-  let onChainId  = 0;
+  const iface   = new ethers.Interface(ABI);
+  let onChainId = 0;
 
   for (const log of receipt.logs) {
     try {
@@ -85,6 +84,7 @@ export async function createOnChainAgreement(
 
 /**
  * Verify that the IPFS CID on-chain matches the provided one.
+ * To read back the rent: divide the stored uint256 by 100 to get ₹ amount.
  */
 export async function verifyAgreementOnChain(
   onChainId: number,

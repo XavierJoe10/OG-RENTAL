@@ -32,7 +32,7 @@ export function getContract(withSigner = false) {
 export interface CreateAgreementParams {
   tenantWallet:   string;
   propertyId:     string;
-  monthlyRentINR: number;  // Rent in Indian Rupees (e.g. 20000 for ₹20,000)
+  monthlyRentInr: number;  // Rent in Indian Rupees (e.g. 20000 for ₹20,000)
   startDate:      Date;
   endDate:        Date;
   ipfsCID:        string;
@@ -50,7 +50,7 @@ export async function createOnChainAgreement(
   // Store rent as paise (₹ × 100) as a plain uint256.
   // We are NOT transferring ETH — just recording the INR value on-chain.
   // e.g. ₹20,000 → 2,000,000 paise stored as uint256
-  const rentInPaise = BigInt(Math.round(params.monthlyRentINR * 100));
+  const rentInPaise = BigInt(Math.round(params.monthlyRentInr * 100));
   const startUnix   = Math.floor(params.startDate.getTime() / 1000);
   const endUnix     = Math.floor(params.endDate.getTime() / 1000);
 

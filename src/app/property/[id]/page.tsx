@@ -33,8 +33,8 @@ function DetailBlock({
 }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-      <p className="text-4xl text-gray-700">{label}:</p>
-      <p className={`mt-1 font-semibold ${highlight ? "text-5xl text-blue-600" : "text-4xl text-gray-900"}`}>
+      <p className="text-1.5xl text-gray-700">{label}:</p>
+      <p className={`mt-1 font-semibold ${highlight ? "text-2xl text-blue-600" : "text-1xl text-gray-900"}`}>
         {value}
       </p>
     </div>
@@ -52,15 +52,15 @@ function PropertyDetailsCard({ property }: { property: Property }) {
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-5xl text-gray-300">Home</div>
+          <div className="flex h-full w-full items-center justify-center text-1.5xl text-gray-300">Home</div>
         )}
       </div>
 
       <div className="space-y-6 p-6 md:p-8">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-950">{property.title}</h1>
+        <h1 className="text-1.5xl font-bold tracking-tight text-gray-950">{property.title}</h1>
 
         <div className="space-y-3">
-          <h2 className="text-5xl font-semibold text-gray-900">Description</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Description</h2>
           <p className="text-xl leading-8 text-gray-700">{property.description}</p>
         </div>
 
@@ -103,12 +103,12 @@ function OfferCard({
   onSubmit: (event: React.FormEvent) => Promise<void>;
 }) {
   return (
-    <aside className="h-fit rounded-2xl border border-gray-200 bg-white p-6 shadow-sm lg:sticky lg:top-8">
-      <h2 className="text-2xl font-bold text-gray-950">Make an Offer</h2>
-      <p className="mt-4 text-xl text-gray-700">Listed Price: {formatInr(property.price)}/month</p>
+    <aside className="h-fit rounded-1.55xl border border-gray-200 bg-white p-6 shadow-sm lg:sticky lg:top-8">
+      <h2 className="text-1.3xl font-bold text-gray-950">Make an Offer</h2>
+      <p className="mt-2 text-xl text-gray-700">Listed Price: {formatInr(property.price)}/month</p>
 
       {property.isAvailable ? (
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
+        <form onSubmit={onSubmit} className="mt-3 space-y-4">
           <div>
             <label htmlFor="offer-amount" className="mb-2 block text-xl font-semibold text-gray-900">
               Your Offer (INR / month) *

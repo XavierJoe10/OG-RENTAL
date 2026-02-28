@@ -114,7 +114,8 @@ function CalendarDatePicker({ label, value, onChange, minDate }: CalendarDatePic
           if (!day) return <div key={`empty-${idx}`} className="h-8" />;
           const ymd = formatYmd(new Date(year, month, day));
           const isSelected = value === ymd;
-          const isDisabled = Boolean(minDate) && ymd < minDate;
+          const min = minDate ?? "";
+          const isDisabled = min !== "" && ymd < min;
           return (
             <button
               key={ymd}
@@ -159,8 +160,8 @@ export default function DashboardPage() {
   const [agreementDateError, setAgreementDateError] = useState("");
   const [creatingAgreement, setCreatingAgreement] = useState(false);
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : "";
-  const role = typeof window !== "undefined" ? localStorage.getItem("role") : "";
+  const [token, setToken] = useState<string>("");
+  const [role, setRole]   = useState<string>("");
 
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
@@ -173,23 +174,44 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function load() {
-      setLoading(true);
-      const [offersRes, agreementsRes] = await Promise.all([
-        fetch("/api/offers", { headers }),
-        fetch("/api/agreements", { headers }),
-      ]);
-      setOffers(await offersRes.json());
-      setAgreements(await agreementsRes.json());
+      const savedToken = localStorage.getItem("token") || "";
+      const savedRole  = localStorage.getItem("role")  || "";
 
-      if (role === "OWNER" || role === "TENANT") {
-        const listRes = await fetch("/api/properties", { headers });
-        const data = await listRes.json();
-        setListings(data.properties || []);
+      // ── Redirect to login if not logged in ──
+      if (!savedToken) {
+        window.location.href = "/login";
+        return;
       }
 
-      // Fetch current user's wallet address from DB
+      setToken(savedToken);
+      setRole(savedRole);
+
+      const authHeaders = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${savedToken}`,
+      };
+
+      setLoading(true);
+
+      const [offersRes, agreementsRes] = await Promise.all([
+        fetch("/api/offers",     { headers: authHeaders }),
+        fetch("/api/agreements", { headers: authHeaders }),
+      ]);
+
+      const offersData     = await offersRes.json();
+      const agreementsData = await agreementsRes.json();
+
+      setOffers(Array.isArray(offersData)      ? offersData      : []);
+      setAgreements(Array.isArray(agreementsData) ? agreementsData : []);
+
+      if (savedRole === "OWNER" || savedRole === "TENANT") {
+        const listRes  = await fetch("/api/properties", { headers: authHeaders });
+        const listData = await listRes.json();
+        setListings(listData.properties || []);
+      }
+
       try {
-        const meRes = await fetch("/api/auth/me", { headers });
+        const meRes = await fetch("/api/auth/me", { headers: authHeaders });
         if (meRes.ok) {
           const me = await meRes.json();
           setWalletAddress(me.walletAddress || null);

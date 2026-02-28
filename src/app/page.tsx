@@ -1,14 +1,27 @@
+"use client";
+
 // src/app/page.tsx
+import { useEffect, useState } from "react";
+
 export default function HomePage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
+  }, []);
+
   return (
     <div className="flex flex-col items-center text-center py-20 gap-6">
       <h1 className="text-5xl font-extrabold text-indigo-600 leading-tight">
         Rent Properties.<br />No Middlemen.
       </h1>
+
       <p className="text-lg text-gray-600 max-w-xl">
         RentChain connects property owners and tenants directly.
         All agreements are secured on Ethereum and stored permanently on IPFS.
       </p>
+
       <div className="flex gap-4 mt-4">
         <a
           href="/browse"
@@ -16,12 +29,15 @@ export default function HomePage() {
         >
           Browse Properties
         </a>
-        <a
-          href="/dashboard"
-          className="border border-indigo-600 text-indigo-600 px-6 py-3 rounded-lg font-semibold hover:bg-indigo-50 transition"
-        >
-          My Dashboard
-        </a>
+
+        {isLoggedIn && (
+          <a
+            href="/dashboard"
+            className="border border-indigo-600 text-indigo-600 px-6 py-3 rounded-lg font-semibold hover:bg-indigo-50 transition"
+          >
+            My Dashboard
+          </a>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 w-full max-w-4xl text-left">

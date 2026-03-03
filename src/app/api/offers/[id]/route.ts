@@ -4,12 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/jwt";
 
 // ── PATCH /api/offers/:id  { action: "accept" | "reject" | "withdraw" } ────
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+  req: NextRequest, { params }: { params: Promise<{ id: string }> }
+) {
   const user = getAuthUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { id } = await params;
   const offer = await prisma.offer.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { property: true, tenant: true },
   });
 
@@ -25,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const updated = await prisma.offer.update({
-      where: { id: params.id },
+      where: { id },
       data: { status: "WITHDRAWN" },
     });
     return NextResponse.json(updated);
@@ -41,7 +44,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const newStatus = action === "accept" ? "ACCEPTED" : "REJECTED";
 
   const updated = await prisma.offer.update({
-    where: { id: params.id },
+    where: { id },
     data: { status: newStatus },
   });
 
@@ -50,7 +53,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     await prisma.offer.updateMany({
       where: {
         propertyId: offer.propertyId,
-        id:         { not: params.id },
+        id:         { not: id },
         status:     "PENDING",
       },
       data: { status: "REJECTED" },

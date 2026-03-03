@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
 
   const offer = await prisma.offer.findUnique({
     where: { id: offerId },
-    include: { property: true, tenant: true },
+    include: { property: true, tenant: true, agreement: true },
   });
 
   if (!offer) return NextResponse.json({ error: "Offer not found" }, { status: 404 });

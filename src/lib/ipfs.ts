@@ -13,14 +13,33 @@ export function ipfsUrl(cid: string) {
  * Pin a file (Buffer / Blob / File) to IPFS via Pinata.
  * Returns the IPFS CID.
  */
+// Helper to convince TypeScript that a value is a Node Buffer.
+function isBuffer(value: unknown): value is Buffer {
+  return (
+    typeof Buffer !== "undefined" &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (Buffer as any).isBuffer?.(value)
+  );
+}
+
 export async function pinFile(
   file: Blob | Buffer,
   filename: string,
   mimeType = "application/octet-stream"
 ): Promise<string> {
   const formData = new FormData();
-  const blob = file instanceof Buffer ? new Blob([file], { type: mimeType }) : file;
-  formData.append("file", blob, filename);
+
+  // Normalize input to a proper Blob instance so the DOM `FormData` type
+  // checks will pass.  We convert Buffers (Node.js) to Blobs; if the caller
+  // passes a browser Blob already we can use it directly.
+  let blobToSend: Blob;
+  if (isBuffer(file)) {
+    blobToSend = new Blob([file.buffer as ArrayBuffer], { type: mimeType });
+  } else {
+    blobToSend = file;
+  }
+
+  formData.append("file", blobToSend, filename);
   formData.append(
     "pinataMetadata",
     JSON.stringify({ name: filename })

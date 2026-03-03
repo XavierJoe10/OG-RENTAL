@@ -12,7 +12,14 @@ export interface JWTPayload {
 }
 
 export function signToken(payload: JWTPayload): string {
-  return jwt.sign(payload, SECRET, { expiresIn: EXPIRES });
+  // `jsonwebtoken`'s overloaded signatures confuse TypeScript when we pass a
+  // string secret and options object.  Cast to the more specific types so
+  // the compiler picks the correct overload.
+  return jwt.sign(
+    payload,
+    SECRET as jwt.Secret,
+    { expiresIn: EXPIRES } as jwt.SignOptions
+  );
 }
 
 export function verifyToken(token: string): JWTPayload {

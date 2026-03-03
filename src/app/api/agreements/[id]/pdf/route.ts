@@ -8,8 +8,9 @@ import { generateAgreementPdf } from "@/lib/generateAgreementPdf";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   // Auth check
   const user = getAuthUser(req);
   if (!user) {
@@ -18,7 +19,7 @@ export async function GET(
 
   // Fetch agreement with all related data
   const agreement = await prisma.agreement.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       property: true,
       owner:    { select: { id: true, name: true, email: true, walletAddress: true } },

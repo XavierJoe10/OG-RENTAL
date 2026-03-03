@@ -2,11 +2,17 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+type Me = {
+  name: string;
+  role: "TENANT" | "OWNER";
+};
+
 export default function Navbar() {
   const router = useRouter();
   const [name, setName] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [me, setMe] = useState<Me | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -16,6 +22,24 @@ export default function Navbar() {
   useEffect(() => {
     setName(localStorage.getItem("name"));
     setRole(localStorage.getItem("role"));
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    fetch("/api/auth/me", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.name && data?.role) {
+          setMe({ name: data.name, role: data.role });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   function logout() {
@@ -34,33 +58,25 @@ export default function Navbar() {
       <div className="flex items-center gap-6 text-sm font-medium">
         <a href="/browse" className="text-gray-600 hover:text-indigo-600 transition">Browse</a>
 
-        {name ? (
-          <>
-            <a href="/dashboard" className="text-gray-600 hover:text-indigo-600 transition">Dashboard</a>
-            <div className="flex items-center gap-3">
-              <span className="text-gray-500">
-                👤 {name}
-                <span className="ml-1 text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">
-                  {role}
-                </span>
+        {me ? (
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-2 text-sm font-medium">
+              👤 {me.name}
+              <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                {me.role}
               </span>
-              <button
-                onClick={logout}
-                className="text-red-500 hover:text-red-600 transition text-sm"
-              >
-                Logout
-              </button>
-            </div>
-          </>
+            </span>
+          </div>
         ) : (
-          <>
-            <a href="/login" className="text-gray-600 hover:text-indigo-600 transition">
-              Sign In
-            </a>
-            <a href="/register" className="bg-indigo-600 text-white px-4 py-1.5 rounded-lg hover:bg-indigo-700 transition">
+          <div className="flex items-center gap-4">
+            <a href="/login" className="text-sm font-medium">Sign In</a>
+            <a
+              href="/register"
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+            >
               Register
             </a>
-          </>
+          </div>
         )}
       </div>
     </nav>

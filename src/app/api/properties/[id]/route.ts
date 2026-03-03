@@ -4,9 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/jwt";
 
 // ── GET /api/properties/:id ─────────────────────────────────
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  _req: NextRequest, { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
   const property = await prisma.property.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       owner:  { select: { id: true, name: true, email: true, walletAddress: true } },
       offers: {
@@ -21,18 +24,20 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 }
 
 // ── PUT /api/properties/:id ─────────────────────────────────
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(
+  req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = getAuthUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const property = await prisma.property.findUnique({ where: { id: params.id } });
+  const { id } = await params;
+  const property = await prisma.property.findUnique({ where: { id } });
   if (!property)           return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (property.ownerId !== user.userId)
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const updated = await prisma.property.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       title:       body.title,
       description: body.description,
@@ -49,18 +54,20 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 // ── DELETE /api/properties/:id ──────────────────────────────
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = getAuthUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const property = await prisma.property.findUnique({ where: { id: params.id } });
+  const { id } = await params;
+  const property = await prisma.property.findUnique({ where: { id } });
   if (!property) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (property.ownerId !== user.userId)
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Soft-delete: mark unavailable instead of deleting
   await prisma.property.update({
-    where: { id: params.id },
+    where: { id },
     data: { isAvailable: false },
   });
 

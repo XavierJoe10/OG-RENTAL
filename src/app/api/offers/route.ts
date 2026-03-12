@@ -32,11 +32,12 @@ export async function GET(req: NextRequest) {
     if (propertyId) where.propertyId = propertyId;
   }
 
-  const offers = await prisma.offer.findMany({
+const offers = await prisma.offer.findMany({
     where,
     include: {
-      tenant:   { select: { id: true, name: true, email: true, walletAddress: true } },
-      property: { select: { id: true, title: true, location: true } },
+      tenant:    { select: { id: true, name: true, email: true, walletAddress: true } },
+      property:  { select: { id: true, title: true, location: true } },
+      agreement: true,  // ← only change
     },
     orderBy: { createdAt: "desc" },
   });

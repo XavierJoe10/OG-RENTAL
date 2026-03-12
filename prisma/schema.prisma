@@ -29,6 +29,12 @@ enum AgreementStatus {
   EXPIRED
 }
 
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
@@ -39,10 +45,12 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  properties   Property[]
-  offers       Offer[]
+  properties         Property[]
+  offers             Offer[]
   agreementsAsOwner  Agreement[] @relation("OwnerAgreements")
   agreementsAsTenant Agreement[] @relation("TenantAgreements")
+  paymentsAsTenant   Payment[]   @relation("TenantPayments")
+  paymentsAsOwner    Payment[]   @relation("OwnerPayments")
 }
 
 model Property {
@@ -50,13 +58,12 @@ model Property {
   title       String
   description String
   location    String
-  price       Float    // monthly rent in INR
+  price       Float
   bedrooms    Int
   bathrooms   Int
   areaSqFt    Float?
   isAvailable Boolean  @default(true)
 
-  // IPFS CIDs
   imageCIDs   String[]
   videoCIDs   String[]
 
@@ -72,7 +79,7 @@ model Property {
 
 model Offer {
   id         String      @id @default(cuid())
-  price      Float       // proposed monthly rent in INR
+  price      Float
   message    String?
   status     OfferStatus @default(PENDING)
 
@@ -93,9 +100,9 @@ model Agreement {
   monthlyRent     Float
   startDate       DateTime
   endDate         DateTime
-  ipfsCID         String          // IPFS CID of agreement PDF
-  onChainId       Int?            // Smart contract agreement ID
-  txHash          String?         // blockchain transaction hash
+  ipfsCID         String
+  onChainId       Int?
+  txHash          String?
   status          AgreementStatus @default(ACTIVE)
 
   propertyId      String
@@ -110,6 +117,30 @@ model Agreement {
   offerId         String?         @unique
   offer           Offer?          @relation(fields: [offerId], references: [id])
 
+  payments        Payment[]
+
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  amount        Float
+  month         String                              // "2025-03"
+  status        PaymentStatus @default(PENDING)
+  upiId         String?
+  transactionId String        @unique
+
+  agreementId   String
+  agreement     Agreement     @relation(fields: [agreementId], references: [id])
+
+  tenantId      String
+  tenant        User          @relation("TenantPayments", fields: [tenantId], references: [id])
+
+  ownerId       String
+  owner         User          @relation("OwnerPayments",  fields: [ownerId],  references: [id])
+
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }

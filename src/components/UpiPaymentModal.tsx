@@ -17,10 +17,10 @@ interface Props {
 }
 
 const UPI_APPS = [
-  { name: "GPay",     color: "bg-white border-2 border-blue-100",   icon: "🔵", label: "Google Pay"  },
-  { name: "PhonePe",  color: "bg-white border-2 border-purple-100", icon: "🟣", label: "PhonePe"     },
-  { name: "Paytm",    color: "bg-white border-2 border-blue-100",   icon: "🔷", label: "Paytm"       },
-  { name: "BHIM",     color: "bg-white border-2 border-orange-100", icon: "🟠", label: "BHIM UPI"    },
+  { name: "GPay",    color: "bg-white border-2 border-blue-100",   img: "/gpay.png",    label: "Google Pay" },
+  { name: "PhonePe", color: "bg-white border-2 border-purple-100", img: "/phonepe.png", label: "PhonePe"    },
+  { name: "Paytm",   color: "bg-white border-2 border-blue-100",   img: "/paytm.png",   label: "Paytm"      },
+  { name: "BHIM",    color: "bg-white border-2 border-orange-100", img: "/bhim.png",    label: "BHIM UPI"   },
 ];
 
 export default function UpiPaymentModal({
@@ -115,7 +115,7 @@ export default function UpiPaymentModal({
                     onClick={() => handleUpiAppClick(app.name)}
                     className={`${app.color} rounded-xl p-3 flex flex-col items-center gap-1 hover:shadow-md transition`}
                   >
-                    <span className="text-2xl">{app.icon}</span>
+                    <img src={app.img} alt={app.label} className="w-8 h-8 object-contain" />
                     <span className="text-xs text-gray-600 font-medium">{app.label}</span>
                   </button>
                 ))}

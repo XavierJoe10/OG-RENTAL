@@ -100,7 +100,7 @@ export default function DashboardPage() {
   const [agreementDateError, setAgreementDateError] = useState("");
   const [creatingAgreement,  setCreatingAgreement]  = useState(false);
   const [payModal, setPayModal] = useState<{ agreementId: string; amount: number; month: string; propertyTitle: string } | null>(null);
-
+  const [dismissedAlerts, setDismissedAlerts] = useState<string[]>([]);
   const toRentInr = (v: any) => typeof v?.rentInr === "number" ? v.rentInr : typeof v?.price === "number" ? v.price : typeof v?.monthlyRent === "number" ? v.monthlyRent : 0;
 
   useEffect(() => {
@@ -241,7 +241,62 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {actionMsg && (
+      
+      {/* ── Expiry Alert Banners ── */}
+{agreements
+  .filter((a) => a.status === "ACTIVE" && !dismissedAlerts.includes(a.id))
+  .map((a) => {
+    const end   = new Date(a.endDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    const diff = Math.round((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diff > 7) return null;
+
+    let bg      = "";
+    let icon    = "";
+    let message = "";
+
+    if (diff < 0) {
+      bg = "bg-gray-100 border-gray-300 text-gray-700";
+      icon = "⚫";
+      message = `Agreement for "${a.property?.title}" has expired.`;
+    } else if (diff === 0) {
+      bg = "bg-red-100 border-red-400 text-red-800";
+      icon = "🔴";
+      message = `Agreement for "${a.property?.title}" expires TODAY!`;
+    } else if (diff === 1) {
+      bg = "bg-orange-100 border-orange-400 text-orange-800";
+      icon = "🟠";
+      message = `Agreement for "${a.property?.title}" expires TOMORROW.`;
+    } else if (diff === 2) {
+      bg = "bg-orange-50 border-orange-300 text-orange-700";
+      icon = "🟠";
+      message = `Agreement for "${a.property?.title}" expires in 2 days.`;
+    } else {
+      bg = "bg-yellow-50 border-yellow-300 text-yellow-700";
+      icon = "🟡";
+      message = `Agreement for "${a.property?.title}" expires in ${diff} days (${end.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}).`;
+    }
+
+    return (
+      <div key={a.id} className={`mb-2 px-4 py-3 rounded-lg border text-sm font-medium flex items-center justify-between gap-2 ${bg}`}>
+        <div className="flex items-center gap-2">
+          <span>{icon}</span>
+          <span>{message}</span>
+        </div>
+        <button
+          onClick={() => setDismissedAlerts((prev) => [...prev, a.id])}
+          className="text-current opacity-50 hover:opacity-100 text-lg leading-none flex-shrink-0"
+          title="Dismiss"
+        >
+          ✕
+        </button>
+      </div>
+    );
+  })}
+  {actionMsg && (
         <div className={`mb-4 px-4 py-2 rounded-lg text-sm ${actionMsg.startsWith("SUCCESS:") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>{actionMsg}</div>
       )}
 
@@ -336,25 +391,73 @@ export default function DashboardPage() {
           ))}
         </div>
       )}
+{/* Payments */}
+{tab === "payments" && (
+  <div className="space-y-6">
 
-      {/* Payments */}
-      {tab === "payments" && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4"><p className="text-xs text-gray-500 mb-1">Total Payments</p><p className="text-2xl font-bold text-indigo-600">{payments.length}</p></div>
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4"><p className="text-xs text-gray-500 mb-1">{role === "OWNER" ? "Total Received" : "Total Paid"}</p><p className="text-2xl font-bold text-green-600">{formatInr(payments.filter((p) => p.status === "SUCCESS").reduce((s: number, p: any) => s + p.amount, 0))}</p></div>
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4"><p className="text-xs text-gray-500 mb-1">This Month</p><p className="text-2xl font-bold text-blue-600">{formatInr(payments.filter((p) => p.status === "SUCCESS" && p.month === getCurrentMonth()).reduce((s: number, p: any) => s + p.amount, 0))}</p></div>
-          </div>
-          {payments.length === 0 ? (
-            <div className="text-center py-12"><p className="text-4xl mb-3">💳</p><p className="text-gray-400 font-medium">No payments yet.</p>{role === "TENANT" && <p className="text-xs text-gray-400 mt-1">Go to the Agreements tab to pay rent.</p>}</div>
-          ) : (
-            <div className="space-y-3">
-              {payments.map((p: any) => (
+    {/* Overall summary */}
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <p className="text-xs text-gray-500 mb-1">Total Payments</p>
+        <p className="text-2xl font-bold text-indigo-600">{payments.length}</p>
+      </div>
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <p className="text-xs text-gray-500 mb-1">{role === "OWNER" ? "Total Received" : "Total Paid"}</p>
+        <p className="text-2xl font-bold text-green-600">
+          {formatInr(payments.filter((p) => p.status === "SUCCESS").reduce((s: number, p: any) => s + p.amount, 0))}
+        </p>
+      </div>
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <p className="text-xs text-gray-500 mb-1">This Month</p>
+        <p className="text-2xl font-bold text-blue-600">
+          {formatInr(payments.filter((p) => p.status === "SUCCESS" && p.month === getCurrentMonth()).reduce((s: number, p: any) => s + p.amount, 0))}
+        </p>
+      </div>
+    </div>
+
+    {payments.length === 0 ? (
+      <div className="text-center py-12">
+        <p className="text-4xl mb-3">💳</p>
+        <p className="text-gray-400 font-medium">No payments yet.</p>
+        {role === "TENANT" && <p className="text-xs text-gray-400 mt-1">Go to the Agreements tab to pay rent.</p>}
+      </div>
+    ) : (
+      (() => {
+        // Group payments by property
+        const groups: Record<string, { title: string; items: any[] }> = {};
+        payments.forEach((p: any) => {
+          const pid   = p.agreement?.property?.title ?? "Unknown Property";
+          if (!groups[pid]) groups[pid] = { title: pid, items: [] };
+          groups[pid].items.push(p);
+        });
+
+        return Object.entries(groups).map(([title, group]) => {
+          const groupTotal = group.items
+            .filter((p) => p.status === "SUCCESS")
+            .reduce((s, p) => s + p.amount, 0);
+
+          return (
+            <div key={title} className="space-y-2">
+
+              {/* Property header */}
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🏠</span>
+                  <p className="font-semibold text-gray-800">{title}</p>
+                  <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">
+                    {group.items.length} payment{group.items.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                <p className="text-sm font-bold text-green-600">{formatInr(groupTotal)}</p>
+              </div>
+
+              {/* Payment cards for this property */}
+              {group.items.map((p: any) => (
                 <div key={p.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-semibold">{p.agreement?.property?.title ?? "Property"}</p>
-                      <p className="text-sm text-gray-500">{monthLabel(p.month)}{" | "}<span className="text-indigo-600 font-medium">{formatInr(p.amount)}</span></p>
+                      <p className="text-sm font-medium text-gray-700">{monthLabel(p.month)}</p>
+                      <p className="text-indigo-600 font-bold">{formatInr(p.amount)}</p>
                       {role === "OWNER" && <p className="text-xs text-gray-400 mt-0.5">From: {p.tenant?.name} ({p.tenant?.email})</p>}
                       {role === "TENANT" && <p className="text-xs text-gray-400 mt-0.5">To: {p.owner?.name}</p>}
                       <p className="text-xs font-mono text-gray-400 mt-1">TXN: {p.transactionId}</p>
@@ -365,11 +468,14 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-        </div>
-      )}
 
+            </div>
+          );
+        });
+      })()
+    )}
+  </div>
+)}
       {/* Listings */}
       {tab === "listings" && (role === "OWNER" || role === "TENANT") && (
         <div>

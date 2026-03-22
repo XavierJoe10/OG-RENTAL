@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 type Me = {
   name:          string;
   email:         string;
-  role:          "TENANT" | "OWNER";
+  role:          "TENANT" | "OWNER" | "ADMIN";
   walletAddress?: string | null;
   createdAt?:    string;
 };
@@ -65,20 +65,21 @@ export default function Navbar() {
     router.push("/");
   }
 
-  const roleColor = me?.role === "OWNER"
-    ? "bg-indigo-100 text-indigo-700"
-    : "bg-green-100 text-green-700";
+  const roleColor =
+    me?.role === "ADMIN"  ? "bg-red-100 text-red-700"     :
+    me?.role === "OWNER"  ? "bg-indigo-100 text-indigo-700" :
+                            "bg-green-100 text-green-700";
 
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
-       
-       <a href="/" className="flex items-center">
-  <img
-    src="/RentChainlogo-removebg-preview (1).png"
-    alt="RentChain"
-    className="h-12 w-auto object-contain transform scale-150 drop-shadow-sm"
-  />
-</a>
+
+      <a href="/" className="flex items-center">
+        <img
+          src="/RentChainlogo-removebg-preview (1).png"
+          alt="RentChain"
+          className="h-12 w-auto object-contain transform scale-150 drop-shadow-sm"
+        />
+      </a>
 
       <div className="flex items-center gap-6 text-sm font-medium">
 
@@ -87,9 +88,10 @@ export default function Navbar() {
             Browse
           </a>
         )}
+
         {me && (
-          <a href="/dashboard" className="text-gray-600 hover:text-indigo-600 transition">
-            Dashboard
+          <a href={me.role === "ADMIN" ? "/dashboard/admin" : "/dashboard"} className="text-gray-600 hover:text-indigo-600 transition">
+            {me.role === "ADMIN" ? "Admin Dashboard" : "Dashboard"}
           </a>
         )}
 
@@ -147,17 +149,20 @@ export default function Navbar() {
                         <span className="text-xs text-gray-700 font-medium">{me.email}</span>
                       </div>
 
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-xs text-gray-500 flex-shrink-0">Wallet</span>
-                        {me.walletAddress ? (
-                          <span className="text-xs font-mono text-indigo-600 break-all text-right">
-                            {me.walletAddress.slice(0, 10)}...{me.walletAddress.slice(-8)}
-                            <span className="ml-1 text-green-500">✓</span>
-                          </span>
-                        ) : (
-                          <span className="text-xs text-amber-500 font-medium">Not connected</span>
-                        )}
-                      </div>
+                      {/* Wallet — only shown for OWNER and TENANT */}
+                      {me.role !== "ADMIN" && (
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-xs text-gray-500 flex-shrink-0">Wallet</span>
+                          {me.walletAddress ? (
+                            <span className="text-xs font-mono text-indigo-600 break-all text-right">
+                              {me.walletAddress.slice(0, 10)}...{me.walletAddress.slice(-8)}
+                              <span className="ml-1 text-green-500">✓</span>
+                            </span>
+                          ) : (
+                            <span className="text-xs text-amber-500 font-medium">Not connected</span>
+                          )}
+                        </div>
+                      )}
 
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-gray-500">Switch Account</span>
@@ -168,16 +173,11 @@ export default function Navbar() {
                           → Sign in as different user
                         </button>
                       </div>
-
                     </div>
 
                     {/* Footer actions */}
                     <div className="border-t border-gray-100 px-5 py-3 flex items-center justify-between">
-                      <a
-                        href="/dashboard"
-                        onClick={() => setShowAccount(false)}
-                        className="text-xs text-indigo-600 font-semibold hover:underline"
-                      >
+                      <a href={me.role === "ADMIN" ? "/dashboard/admin" : "/dashboard"} onClick={() => setShowAccount(false)} className="text-xs text-indigo-600 font-semibold hover:underline">
                         My Dashboard →
                       </a>
                       <button
@@ -197,10 +197,7 @@ export default function Navbar() {
               <a href="/login" className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition">
                 Sign In
               </a>
-              <a
-                href="/register"
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition"
-              >
+              <a href="/register" className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition">
                 Register
               </a>
             </div>

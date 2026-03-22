@@ -108,6 +108,7 @@ export default function DashboardPage() {
       const savedToken = localStorage.getItem("token") || "";
       const savedRole  = localStorage.getItem("role")  || "";
       if (!savedToken) { window.location.href = "/login"; return; }
+      if (savedRole === "ADMIN") { window.location.href = "/dashboard/admin"; return; }
       setToken(savedToken); setRole(savedRole);
       const H = { "Content-Type": "application/json", Authorization: `Bearer ${savedToken}` };
       setLoading(true);
